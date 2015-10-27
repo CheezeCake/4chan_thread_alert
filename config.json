@@ -1,0 +1,9 @@
+{
+	"g": [
+		".*bsd",
+		"interject"
+	],
+	"o": [
+		"ini(tial|sharu) d"
+	]
+}
