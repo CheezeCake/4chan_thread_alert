@@ -9,6 +9,12 @@ use Getopt::Std;
 use Error qw(:try);
 
 
+use constant NMA_API_KEY => '';
+use constant DB_DEFAULT => '/tmp/4chan_thread_alert.db';
+use constant DRIVER => 'SQLite';
+
+
+
 sub help()
 {
     print 'options:', "\n",
@@ -18,11 +24,6 @@ sub help()
     '[-h] : display this help', "\n";
     exit
 }
-
-
-use constant NMA_API_KEY => '';
-use constant DB_DEFAULT => '/tmp/4chan_thread_alert.db';
-use constant DRIVER => 'SQLite';
 
 
 # parse command line
@@ -43,7 +44,7 @@ help() if (defined $opt_h);
 my $DB = (defined $opt_d) ? $opt_d : DB_DEFAULT;
 
 
-# connect to db and create table if it does not exists
+# connect to db and create table if it does not exist
 my $dbh = DBI->connect(
     'DBI:'.DRIVER.':dbname='.$DB, '', '', { RaiseError => 1 })
     or die $DBI::errstr;
@@ -113,7 +114,7 @@ while ((my $board, my $searches) = each %$json_config) {
             foreach my $thread (@$thread_array) {
                 # check if it matches the search terms
                 foreach my $search (@$searches) {
-                    # perform search on the subject and filename
+                    # perform search on the comment, subject and filename
                     if ((${$thread}{'sub'} =~ /$search/i or
                             ${$thread}{'com'} =~ /$search/i or
                             ${$thread}{'filename'} =~ /$search/i)) {
@@ -127,7 +128,7 @@ while ((my $board, my $searches) = each %$json_config) {
 
                         if ($n == 0) {
                             # send notification
-                            my $rep = $browser->post('https://www.notifymyandroid.com/publicapi/notify', [
+                            $browser->post('https://www.notifymyandroid.com/publicapi/notify', [
                                     'apikey' => NMA_API_KEY,
                                     'application' => '4chan_thread_alert',
                                     'content-type' => 'text/html',
@@ -135,8 +136,6 @@ while ((my $board, my $searches) = each %$json_config) {
                                     'event' => 'Thread alert : /'.$board.'/'.$no.' | '.$search,
                                     'description' => 'Sub: '.${$thread}{'sub'}."\n".${$thread}{'com'}
                                 ]);
-
-                            # print $rep->decoded_content, "\n\n" if ($rep->is_success);
 
                             # insert in db
                             $stmt = qq(insert into threads (board, no) values('$board', '$no'););
